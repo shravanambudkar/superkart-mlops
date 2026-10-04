@@ -7927,20 +7927,6 @@ sales operations by region, guide supply-chain procurement, reduce pipeline/fore
 </tr>
 </tbody>
 </table>
-<h2 id="Pipeline-architecture">Pipeline architecture<a class="anchor-link" href="#Pipeline-architecture">¶</a></h2><pre><code> SuperKart.csv ──► data_register.py ──► HF Dataset repo (raw)
-                                             │
-                    prep.py ◄────────────────┘   clean ▸ drop IDs ▸ split 80/20
-                       │
-                       └──► HF Dataset repo (Xtrain / Xtest / ytrain / ytest)
-                                             │
-                    train.py ◄───────────────┘   GridSearchCV (RandomForest, XGBoost) ▸ evaluate
-                       │
-                       └──► HF Model hub (best_superkart_model_v1.joblib + metrics)
-                                             │
-                    hosting.py ──► HF Space (Docker + Streamlit app.py loads model from the hub)
-
- GitHub Actions (pipeline.yml): register-dataset ► data-prep ► model-training ► deploy-hosting ► update-main
-</code></pre>
 </div>
 </div>
 </div>
@@ -9398,9 +9384,9 @@ Wall time: 1min 18s
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jupyter-widgets jp-OutputArea-output" id="93e9c2aa-c960-4763-9ca8-6a965ede0e2e" tabindex="0">
+<div class="jupyter-widgets jp-OutputArea-output" id="18a0ea1b-40a3-4cfc-b93f-1146c1c2174f" tabindex="0">
 <script type="text/javascript">
-var element = document.getElementById('93e9c2aa-c960-4763-9ca8-6a965ede0e2e');
+var element = document.getElementById('18a0ea1b-40a3-4cfc-b93f-1146c1c2174f');
 </script>
 <script type="application/vnd.jupyter.widget-view+json">
 {"model_id": "f5c240f782844d29a07c6e8d2fe5b359", "version_major": 2, "version_minor": 0}
