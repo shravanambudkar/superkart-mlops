@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+superkart_project/data/X*.csv
+superkart_project/data/y*.csv
+superkart_project/model_building/*.joblib
+superkart_project/model_building/MODEL_CARD.md
+screenshots/*.tmp
+/SuperKart.csv

@@ -1,0 +1,106 @@
+name: SuperKart MLOps Pipeline
+
+on:
+  push:
+    branches: [main]          # every code update pushed to main runs the full pipeline
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:          # allow manual runs from the Actions tab
+
+permissions:
+  contents: write             # needed by the update-main job to push to main
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  register-dataset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r superkart_project/requirements.txt
+      - name: Upload raw dataset to the Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python superkart_project/model_building/data_register.py
+
+  data-prep:
+    needs: register-dataset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r superkart_project/requirements.txt
+      - name: Clean, split and upload train/test data
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python superkart_project/model_building/prep.py
+
+  model-training:
+    needs: data-prep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r superkart_project/requirements.txt
+      - name: Tune, evaluate and register the best model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python superkart_project/model_building/train.py
+      - name: Keep the metrics for the update-main job
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-metrics
+          path: superkart_project/model_building/model_metrics.json
+
+  deploy-hosting:
+    needs: model-training
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r superkart_project/requirements.txt
+      - name: Push deployment files to the Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python superkart_project/hosting/hosting.py
+
+  update-main:
+    needs: deploy-hosting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: model-metrics
+          path: superkart_project/model_building
+      - name: Commit refreshed model metrics to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add superkart_project/model_building/model_metrics.json
+          if git diff --cached --quiet; then
+            echo "Metrics unchanged - nothing to push."
+          else
+            git commit -m "ci: update model metrics from run ${{ github.run_number }} [skip ci]"
+            git push origin HEAD:main
+          fi
